@@ -5,17 +5,18 @@
 
 ## TODO
 
-- [ ] display simple grid
-- [ ] interact with user clicks
+- [x] display simple grid
+- [x] interact with user clicks
 - [ ] validation checking
 - [ ] validation algorithm
-- [ ] 4 by 4 grid working
+- [x] 4 by 4 grid working
 - [ ] 16 by 16 grid
-- [ ] soduku validation
 - [ ] save states working
 - [ ] unit tests working
+- [x] fix window resize issues
 - [ ] setup.bash builds project
 - [ ] resolve TODOs
+- [ ] unit tests for all classes
 
 ## Setup
 
@@ -24,3 +25,5 @@ cd build
 cmake ..
 cmkae --build
 ./Sudoku
+
+## Class design

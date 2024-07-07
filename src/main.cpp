@@ -1,10 +1,19 @@
+#include "Display.h"
 #include "Sudoku.h"
-#include "SudokuSFML.h"
 #include <iostream>
 
 int main() {
-  Board board = generateSudoku(1);
-  displayBoardSFML(board);
+  Sudoku sudoku;
+  Display display;
+  Board board = sudoku.generateSudoku(4);
+
+  display.printBoard(board);
+
+  if (sudoku.isValidBoard(board)) {
+    std::cout << "Valid Sudoku solution!" << std::endl;
+  } else {
+    std::cout << "Invalid Sudoku solution!" << std::endl;
+  }
 
   return 0;
 }
