@@ -1,19 +1,13 @@
 #include "Display.h"
 #include "Sudoku.h"
-#include <iostream>
 
 int main() {
-  Sudoku sudoku;
-  Display display;
-  Board board = sudoku.generateSudoku(4);
+  int defaultBoardSize = 4;
 
-  display.printBoard(board);
+  Sudoku sudoku(defaultBoardSize);
+  Display display(sudoku);
 
-  if (sudoku.isValidBoard(board)) {
-    std::cout << "Valid Sudoku solution!" << std::endl;
-  } else {
-    std::cout << "Invalid Sudoku solution!" << std::endl;
-  }
+  display.printBoard();
 
   return 0;
 }

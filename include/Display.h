@@ -4,21 +4,37 @@
 #include "Sudoku.h"
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <string>
 #include <vector>
 
 class Display {
   int CELL_SIZE = 100;
-  int BUTTON_WIDTH = 200;
-  int BUTTON_HEIGHT = 50;
-  int WINDOW_WIDTH = CELL_SIZE * 4;
-  int WINDOW_HEIGHT = CELL_SIZE * 4 + BUTTON_HEIGHT;
-  float ASPECT_RATIO = static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT;
+  int windowHeight, windowWidth, boardSize, buttonWidth, buttonHeight,
+      buttonYPosition;
+  Coord invalidCoordinates;
+  Coord initialNonZeroCellCoordinates;
+  Sudoku &sudoku;
 
 public:
-  void printBoard(Board &board) {
+  Display(Sudoku &sudoku) : sudoku(sudoku) {
+    updateBoardSize(sudoku.getBoardSize());
+  }
+
+  void updateBoardSize(int newBoardSize) {
+    boardSize = newBoardSize;
+    buttonHeight = CELL_SIZE / 2;
+    windowHeight = CELL_SIZE * boardSize + buttonHeight;
+    windowWidth = CELL_SIZE * boardSize;
+    buttonYPosition = CELL_SIZE * boardSize;
+    buttonWidth = windowWidth / 2;
+  }
+
+  void printBoard() {
     // Set the window to be fixed
-    sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT),
-                            "4x4 Sudoku",
+    std::string titleMessage =
+        std::to_string(boardSize) + "x" + std::to_string(boardSize) + " Sudoku";
+    sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight),
+                            titleMessage,
                             sf::Style::Titlebar | sf::Style::Close);
 
     sf::Font font;
@@ -28,27 +44,37 @@ public:
     }
 
     // Create bottom buttons
-    sf::RectangleShape validateButton(
-        sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT));
-    validateButton.setPosition(0, 4 * CELL_SIZE);
+    sf::RectangleShape validateButton(sf::Vector2f(buttonWidth, buttonHeight));
+    validateButton.setPosition(0, buttonYPosition);
     validateButton.setOutlineColor(sf::Color::Black);
     validateButton.setOutlineThickness(2);
 
-    sf::Text validateText("Validate Board", font, 20);
+    sf::Text validateText("Check Solution", font, 20);
     validateText.setFillColor(sf::Color::Black);
-    validateText.setPosition(0.25 * CELL_SIZE, 4.15 * CELL_SIZE);
+    sf::FloatRect validateTextBounds = validateText.getLocalBounds();
+    validateText.setOrigin(
+        validateTextBounds.left + validateTextBounds.width / 2.0f,
+        validateTextBounds.top + validateTextBounds.height / 2.0f);
+    validateText.setPosition(validateButton.getPosition().x + buttonWidth / 2,
+                             validateButton.getPosition().y + buttonHeight / 2);
 
-    sf::RectangleShape clearButton(sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT));
-    clearButton.setPosition(2 * CELL_SIZE, 4 * CELL_SIZE);
+    sf::RectangleShape clearButton(sf::Vector2f(buttonWidth, buttonHeight));
+    clearButton.setPosition(buttonWidth, buttonYPosition);
     clearButton.setOutlineColor(sf::Color::Black);
     clearButton.setOutlineThickness(2);
 
-    sf::Text clearText("Clear Board", font, 20);
+    sf::Text clearText("New Board", font, 20);
     clearText.setFillColor(sf::Color::Black);
-    clearText.setPosition(2.5 * CELL_SIZE, 4.15 * CELL_SIZE);
+    sf::FloatRect clearTextBounds = clearText.getLocalBounds();
+    clearText.setOrigin(clearTextBounds.left + clearTextBounds.width / 2.0f,
+                        clearTextBounds.top + clearTextBounds.height / 2.0f);
+    clearText.setPosition(clearButton.getPosition().x + buttonWidth / 2,
+                          clearButton.getPosition().y + buttonHeight / 2);
 
     bool showInvalid = false;
-    std::vector<std::pair<int, int>> invalidCells;
+    bool boardSolved = false;
+    Coord initialNonZeroCellCoordinates =
+        sudoku.getInitialNonZeroCellCoordinates();
 
     while (window.isOpen()) {
       sf::Event event;
@@ -56,12 +82,13 @@ public:
         if (event.type == sf::Event::Closed) {
           window.close();
         }
-        handleMouseClick(event, board, validateButton, clearButton, showInvalid,
-                         invalidCells);
+        handleMouseClick(event, validateButton, clearButton, showInvalid,
+                         boardSolved);
       }
 
       window.clear();
-      drawBoard(window, board, font, showInvalid, invalidCells);
+      drawBoard(window, font, showInvalid, boardSolved,
+                initialNonZeroCellCoordinates);
       window.draw(validateButton);
       window.draw(validateText);
       window.draw(clearButton);
@@ -71,45 +98,49 @@ public:
   }
 
 private:
-  void handleMouseClick(sf::Event &event, Board &board,
-                        sf::RectangleShape &validateButton,
+  void handleMouseClick(sf::Event &event, sf::RectangleShape &validateButton,
                         sf::RectangleShape &clearButton, bool &showInvalid,
-                        std::vector<std::pair<int, int>> &invalidCells) {
+                        bool &boardSolved) {
     if (event.type == sf::Event::MouseButtonPressed) {
       int x = event.mouseButton.x / CELL_SIZE;
       int y = event.mouseButton.y / CELL_SIZE;
 
-      // Check if click is within board bounds
-      if (x >= 0 && x < board.size() && y >= 0 && y < board.size()) {
-        board[y][x] = (board[y][x] % 4) + 1;
-        showInvalid = false; // Reset validation on board change
+      if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
+        sudoku.updateCell(y, x);
+        showInvalid = false;
+        invalidCoordinates.clear();
       }
 
       if (validateButton.getGlobalBounds().contains(event.mouseButton.x,
                                                     event.mouseButton.y)) {
         showInvalid = true;
-        invalidCells.clear();
-        validateBoard(board, invalidCells);
+        invalidCoordinates = sudoku.getPrecomptedInvalidCoordinates();
+        boardSolved = sudoku.isFull() && invalidCoordinates.empty();
       }
 
       if (clearButton.getGlobalBounds().contains(event.mouseButton.x,
                                                  event.mouseButton.y)) {
-        clearBoard(board);
+        sudoku.generateSudoku();
         showInvalid = false;
-        invalidCells.clear();
+        initialNonZeroCellCoordinates =
+            sudoku.getInitialNonZeroCellCoordinates();
+        boardSolved = false;
       }
     }
   }
 
-  void drawBoard(sf::RenderWindow &window, const Board &board,
-                 const sf::Font &font, bool showInvalid,
-                 const std::vector<std::pair<int, int>> &invalidCells) {
-    for (int row = 0; row < board.size(); ++row) {
-      for (int col = 0; col < board[row].size(); ++col) {
+  void drawBoard(sf::RenderWindow &window, const sf::Font &font,
+                 bool showInvalid, bool boardSolved,
+                 Coord &initialNonZeroCellCoordinates) {
+    const auto &board = sudoku.getCurrentBoard();
+
+    for (int row = 0; row < boardSize; ++row) {
+      for (int col = 0; col < boardSize; ++col) {
         sf::RectangleShape cell(sf::Vector2f(CELL_SIZE, CELL_SIZE));
         cell.setPosition(col * CELL_SIZE, row * CELL_SIZE);
         cell.setOutlineThickness(1);
         cell.setOutlineColor(sf::Color::Black);
+        cell.setFillColor(sf::Color::White);
         window.draw(cell);
 
         if (board[row][col] != 0) {
@@ -117,14 +148,26 @@ private:
           text.setFont(font);
           text.setString(std::to_string(board[row][col]));
           text.setCharacterSize(48);
-          text.setFillColor(sf::Color::Black);
-          text.setPosition(col * CELL_SIZE + 35, row * CELL_SIZE + 25);
 
-          // Check if the cell is invalid
+          sf::FloatRect textRect = text.getLocalBounds();
+          text.setOrigin(textRect.left + textRect.width / 2.0f,
+                         textRect.top + textRect.height / 2.0f);
+          text.setPosition(col * CELL_SIZE + CELL_SIZE / 2.0f,
+                           row * CELL_SIZE + CELL_SIZE / 2.0f);
+
           if (showInvalid &&
-              std::find(invalidCells.begin(), invalidCells.end(),
-                        std::make_pair(row, col)) != invalidCells.end()) {
+              std::find(invalidCoordinates.begin(), invalidCoordinates.end(),
+                        std::make_pair(row, col)) != invalidCoordinates.end()) {
             text.setFillColor(sf::Color::Red);
+          } else if (boardSolved) {
+            text.setFillColor(sf::Color::Green);
+          } else if (std::find(initialNonZeroCellCoordinates.begin(),
+                               initialNonZeroCellCoordinates.end(),
+                               std::make_pair(row, col)) !=
+                     initialNonZeroCellCoordinates.end()) {
+            text.setFillColor(sf::Color::Black);
+          } else {
+            text.setFillColor(sf::Color(100, 100, 100)); // Dark Gray
           }
 
           window.draw(text);
@@ -133,57 +176,25 @@ private:
     }
   }
 
-  // TODO: implement validation algorithm
-  void validateBoard(const Board &board,
-                     std::vector<std::pair<int, int>> &invalidCells) {
-    int size = board.size();
-    for (int row = 0; row < size; ++row) {
-      for (int col = 0; col < size; ++col) {
-        if (!isValidNumber(board, row, col)) {
-          invalidCells.emplace_back(row, col);
-        }
-      }
-    }
-  }
+  void showPopup(sf::RenderWindow &window, const sf::Font &font,
+                 const std::string &message) {
+    sf::RectangleShape popup(
+        sf::Vector2f(window.getSize().x / 2.0f, window.getSize().y / 4.0f));
+    popup.setFillColor(sf::Color::White);
+    popup.setOutlineColor(sf::Color::Black);
+    popup.setOutlineThickness(2);
+    popup.setPosition(window.getSize().x / 4.0f, window.getSize().y / 3.0f);
 
-  // TODO: fix this function
-  bool isValidNumber(const Board &board, int row, int col) {
-    int size = board.size();
-    int num = board[row][col];
-    if (num == 0)
-      return true;
+    sf::Text text(message, font, 24);
+    text.setFillColor(sf::Color::Black);
+    sf::FloatRect textRect = text.getLocalBounds();
+    text.setOrigin(textRect.left + textRect.width / 2.0f,
+                   textRect.top + textRect.height / 2.0f);
+    text.setPosition(popup.getPosition().x + popup.getSize().x / 2.0f,
+                     popup.getPosition().y + popup.getSize().y / 2.0f);
 
-    // Check row
-    for (int i = 0; i < size; ++i) {
-      if (i != col && board[row][i] == num)
-        return false;
-    }
-
-    // Check column
-    for (int i = 0; i < size; ++i) {
-      if (i != row && board[i][col] == num)
-        return false;
-    }
-
-    int subGridSize = std::sqrt(size);
-    int subRowStart = (row / subGridSize) * subGridSize;
-    int subColStart = (col / subGridSize) * subGridSize;
-
-    for (int r = subRowStart; r < subRowStart + subGridSize; ++r) {
-      for (int c = subColStart; c < subColStart + subGridSize; ++c) {
-        if ((r != row || c != col) && board[r][c] == num)
-          return false;
-      }
-    }
-
-    return true;
-  }
-
-  // TODO: replace with generate new sudoku board
-  void clearBoard(Board &board) {
-    for (auto &row : board) {
-      std::fill(row.begin(), row.end(), 0);
-    }
+    window.draw(popup);
+    window.draw(text);
   }
 };
 
