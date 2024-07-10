@@ -19,18 +19,6 @@
 Display object handle graphics. Sudoku object handles game logic such as board generation and validateion.
 The sudoku object is injected as a dependency into the Display class.
 
-## TODO
-
-- [x] display simple grid
-- [x] interact with user clicks
-- [x] validation checking
-- [x] validation algorithm
-- [x] 4 by 4 grid working
-- [ ] 16 by 16 grid
-- [ ] save states working
-- [ ] resolve TODOs
-- [ ] unit tests for all classes
-
 ## Running the game
 
 In the root directory run
@@ -42,7 +30,22 @@ In the root directory run
 If you encounter a permission denied error, you might need to make `setup.bash` executable. Run the following command:
 
 ```bash
-chmod +x setup.bash
+chmod +x *
 ```
 
-x
+## Ensure Dependencies Are Installed
+
+- **SFML**:
+  - On Mac: Run `brew install sfml` in the terminal.
+
+## TODO
+
+- [x] display simple grid
+- [x] interact with user clicks
+- [x] validation checking
+- [x] validation algorithm
+- [x] 4 by 4 grid working
+- [ ] 16 by 16 grid
+- [ ] diffuculty levels (easy (4x4), medium (9x9) 60% filled, hard (9x9 30% filled)
+- [ ] save states working
+- [ ] unit tests for all classes

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(Sudoku VERSION 1.0)
+project(Sudoku VERSION 1.1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
